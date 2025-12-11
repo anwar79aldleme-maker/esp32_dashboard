@@ -5,34 +5,15 @@
   <title>ESP32 Health Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f5f7fa;
-      margin: 0; padding: 0;
-    }
-    header {
-      background-color: #3f51b5;
-      color: white;
-      text-align: center;
-      padding: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    h1 { margin: 0; font-size: 2rem; }
-    #status { text-align: center; color: red; font-weight: bold; margin: 15px 0; }
-    .dashboard { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; padding: 20px; }
-    .card {
-      background: white;
-      border-radius: 15px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      padding: 20px;
-      width: 400px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .card h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; }
-    .value { font-size: 2rem; font-weight: bold; margin-bottom: 15px; color: #3f51b5; }
-    canvas { width: 100% !important; height: 250px !important; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f7fa; margin:0; padding:0; }
+    header { background-color: #3f51b5; color: white; text-align: center; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    h1 { margin:0; font-size:2rem; }
+    #status { text-align:center; color:red; font-weight:bold; margin:15px 0; }
+    .dashboard { display:flex; flex-wrap:wrap; justify-content:center; gap:30px; padding:20px; }
+    .card { background:white; border-radius:15px; box-shadow:0 4px 8px rgba(0,0,0,0.1); padding:20px; width:400px; display:flex; flex-direction:column; align-items:center; }
+    .card h2 { margin:0 0 10px 0; font-size:1.2rem; color:#333; }
+    .value { font-size:2rem; font-weight:bold; margin-bottom:15px; color:#3f51b5; }
+    canvas { width:100% !important; height:250px !important; }
   </style>
 </head>
 <body>
@@ -67,58 +48,65 @@
       }
     }
 
+    function cleanData(sensorData) {
+      return sensorData.map(d => ({
+        time: d.time,
+        heartrate: (d.heartrate >= 30 && d.heartrate <= 220) ? d.heartrate : null,
+        spo2: (d.spo2 >= 50 && d.spo2 <= 100) ? d.spo2 : null
+      }));
+    }
+
     function updateValues(latest) {
-      const hr = latest ? latest.heartrate : '--';
-      const sp = latest ? latest.spo2 : '--';
+      const hr = (latest && latest.heartrate != null) ? latest.heartrate : '--';
+      const sp = (latest && latest.spo2 != null) ? latest.spo2 : '--';
       document.getElementById('heartrateValue').textContent = hr;
       document.getElementById('spo2Value').textContent = sp;
     }
 
     function getYMax(values, defaultMax) {
-      if (!values || values.length === 0) return defaultMax;
-      return Math.max(...values) * 1.2; // زيادة 20%
+      const filtered = values.filter(v => v != null);
+      if (!filtered.length) return defaultMax;
+      return Math.max(...filtered) * 1.2;
     }
 
     function renderCharts(sensorData) {
-      // فلترة البيانات الغريبة
-      const heartrate = sensorData.map(d => (d.heartrate > 0 && d.heartrate < 220) ? d.heartrate : null);
-      const spo2 = sensorData.map(d => (d.spo2 >= 50 && d.spo2 <= 100) ? d.spo2 : null);
-      const timestamps = sensorData.map(d => new Date(d.time).toLocaleTimeString());
+      const cleaned = cleanData(sensorData);
+      const timestamps = cleaned.map(d => new Date(d.time).toLocaleTimeString());
+      const heartrate = cleaned.map(d => d.heartrate);
+      const spo2 = cleaned.map(d => d.spo2);
 
       if (heartrateChart) heartrateChart.destroy();
       if (spo2Chart) spo2Chart.destroy();
 
       heartrateChart = new Chart(document.getElementById('heartrateChart'), {
         type: 'line',
-        data: { labels: timestamps, datasets: [{ label: 'Heart Rate', data: heartrate, borderColor: '#e53935', backgroundColor: 'rgba(229,57,53,0.2)', fill: true, tension: 0.3 }] },
-        options: { responsive: true, scales: { y: { beginAtZero: true, max: getYMax(heartrate, 150) } } }
+        data: { labels: timestamps, datasets: [{ label:'Heart Rate', data:heartrate, borderColor:'#e53935', backgroundColor:'rgba(229,57,53,0.2)', fill:true, tension:0.3 }] },
+        options: { responsive:true, scales:{ y:{ beginAtZero:true, max:getYMax(heartrate,150) } } }
       });
 
       spo2Chart = new Chart(document.getElementById('spo2Chart'), {
         type: 'line',
-        data: { labels: timestamps, datasets: [{ label: 'SpO2', data: spo2, borderColor: '#1e88e5', backgroundColor: 'rgba(30,136,229,0.2)', fill: true, tension: 0.3 }] },
-        options: { responsive: true, scales: { y: { beginAtZero: true, max: getYMax(spo2, 100) } } }
+        data: { labels: timestamps, datasets: [{ label:'SpO2', data:spo2, borderColor:'#1e88e5', backgroundColor:'rgba(30,136,229,0.2)', fill:true, tension:0.3 }] },
+        options: { responsive:true, scales:{ y:{ beginAtZero:true, max:getYMax(spo2,100) } } }
       });
     }
 
     async function refreshDashboard() {
       const sensorData = await fetchData();
-
-      if (!sensorData || sensorData.length === 0) {
+      if (!sensorData.length) {
         document.getElementById('status').textContent = 'No data available. Please check ESP32 POST or Neon database.';
         updateValues(null);
         renderCharts([]);
         return;
       }
-
       document.getElementById('status').textContent = '';
-      const latest = sensorData[sensorData.length - 1];
+      const latest = sensorData[sensorData.length-1];
       updateValues(latest);
       renderCharts(sensorData);
     }
 
     refreshDashboard();
-    setInterval(refreshDashboard, 10000); // تحديث كل 10 ثوانٍ
+    setInterval(refreshDashboard, 10000);
   </script>
 </body>
 </html>
