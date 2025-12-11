@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,7 +30,6 @@
 
     async function renderCharts() {
       const sensorData = await fetchData();
-
       const timestamps = sensorData.map(d => new Date(d.time).toLocaleTimeString());
       const heartrate = sensorData.map(d => d.heartrate);
       const spo2 = sensorData.map(d => d.spo2);
@@ -40,41 +38,23 @@
         type: 'line',
         data: {
           labels: timestamps,
-          datasets: [{
-            label: 'Heart Rate',
-            data: heartrate,
-            borderColor: 'red',
-            fill: false,
-            tension: 0.3
-          }]
+          datasets: [{ label: 'Heart Rate', data: heartrate, borderColor: 'red', fill: false, tension: 0.3 }]
         },
-        options: {
-          responsive: true,
-          scales: { y: { beginAtZero: true } }
-        }
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
       });
 
       new Chart(document.getElementById('spo2Chart'), {
         type: 'line',
         data: {
           labels: timestamps,
-          datasets: [{
-            label: 'SpO2',
-            data: spo2,
-            borderColor: 'blue',
-            fill: false,
-            tension: 0.3
-          }]
+          datasets: [{ label: 'SpO2', data: spo2, borderColor: 'blue', fill: false, tension: 0.3 }]
         },
-        options: {
-          responsive: true,
-          scales: { y: { beginAtZero: true, max: 100 } }
-        }
+        options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
       });
     }
 
     renderCharts();
-    setInterval(renderCharts, 10000); // تحديث كل 10 ثواني
+    setInterval(renderCharts, 10000);
   </script>
 </body>
 </html>
