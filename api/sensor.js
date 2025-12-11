@@ -22,9 +22,16 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "GET") {
-      const result = await client.query(
-        "SELECT heartrate, spo2, time FROM sensor_data ORDER BY time ASC LIMIT 50"
-      );
+      let query = "SELECT heartrate, spo2, time FROM sensor_data";
+      const params = [];
+      if (req.query.after) {
+        query += " WHERE time > $1 ORDER BY time ASC";
+        params.push(req.query.after);
+      } else {
+        query += " ORDER BY time ASC LIMIT 50";
+      }
+
+      const result = await client.query(query, params);
       res.setHeader(
         "Cache-Control",
         "no-store, no-cache, must-revalidate, proxy-revalidate"
