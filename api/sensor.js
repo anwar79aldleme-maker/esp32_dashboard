@@ -1,43 +1,43 @@
-import pkg from 'pg';
+import pkg from "pg";
 const { Client } = pkg;
 
-export default async function handler(req, res) {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+const connectionString = process.env.DATABASE_URL;
 
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
+export default async function handler(req, res) {
+  const client = new Client({ connectionString });
+  await client.connect();
 
   try {
-    await client.connect();
-
-    if (req.method === 'POST') {
+    if (req.method === "POST") {
       const { heartrate, spo2 } = req.body || {};
       if (heartrate == null || spo2 == null) {
-        await client.end();
-        return res.status(400).json({ message: 'Missing sensor data' });
+        return res.status(400).json({ message: "Missing sensor data" });
       }
 
       await client.query(
-        'INSERT INTO sensor_data (heartrate, spo2, time) VALUES ($1, $2, NOW())',
+        "INSERT INTO sensor_data (heartrate, spo2, time) VALUES ($1, $2, NOW())",
         [heartrate, spo2]
       );
-      await client.end();
-      return res.status(200).json({ message: 'Data saved successfully' });
-
-    } else if (req.method === 'GET') {
-      const result = await client.query(
-        'SELECT heartrate, spo2, time FROM sensor_data ORDER BY time ASC LIMIT 50'
-      );
-      await client.end();
-      return res.status(200).json(result.rows);
-
-    } else {
-      await client.end();
-      return res.status(405).json({ message: 'Method not allowed' });
+      return res.status(200).json({ message: "Data saved successfully" });
     }
 
-  } catch (error) {
+    if (req.method === "GET") {
+      const result = await client.query(
+        "SELECT heartrate, spo2, time FROM sensor_data ORDER BY time ASC LIMIT 50"
+      );
+      res.setHeader(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, proxy-revalidate"
+      );
+      return res.status(200).json(result.rows);
+    }
+
+    res.setHeader("Allow", ["GET", "POST"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error", detail: err.message });
+  } finally {
     await client.end();
-    console.error(error);
-    return res.status(500).json({ message: 'Server error', detail: error.message });
   }
 }
