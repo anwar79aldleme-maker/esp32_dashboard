@@ -27,10 +27,20 @@ export default async function handler(req, res) {
       return res.status(200).json({ message: 'Data saved successfully' });
 
     } else if (req.method === 'GET') {
+      // اختيار العمود الذي يمثل الوقت (افتراضي: time)
+      // إذا عمود الوقت في Neon مختلف، يمكن تعديله هنا
       const result = await client.query(
-        'SELECT time, heartrate, spo2 FROM sensor_data ORDER BY time ASC LIMIT 50;'
+        'SELECT heartrate, spo2, time FROM sensor_data ORDER BY time ASC LIMIT 50'
       );
-      return res.status(200).json(result.rows);
+
+      // تحويل null time إلى تاريخ حالي لتجنب مشاكل Dashboard
+      const rows = result.rows.map(r => ({
+        heartrate: r.heartrate,
+        spo2: r.spo2,
+        time: r.time ? r.time : new Date().toISOString()
+      }));
+
+      return res.status(200).json(rows);
 
     } else {
       console.warn('Method not allowed:', req.method);
