@@ -1,10 +1,13 @@
-import { Client } from '@neondatabase/serverless';
+import pkg from 'pg';
+const { Client } = pkg;
 
 export default async function handler(req, res) {
-  // منع أي cache
+  // منع cache
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+  });
 
   try {
     await client.connect();
@@ -33,6 +36,7 @@ export default async function handler(req, res) {
       await client.end();
       return res.status(405).json({ message: 'Method not allowed' });
     }
+
   } catch (error) {
     await client.end();
     return res.status(500).json({ message: 'Server error', detail: error.message });
