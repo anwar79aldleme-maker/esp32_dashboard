@@ -6,12 +6,11 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 export default function Dashboard() {
   const [data, setData] = useState([]);
 
-  // جلب البيانات من API كل ثانيتين
   const fetchData = async () => {
     try {
       const res = await fetch("/api/sensor?ts=" + Date.now(), { cache: "no-store" });
       const json = await res.json();
-      setData(json.slice(-50)); // آخر 50 قيمة فقط
+      setData(json.slice(-50));
     } catch (err) {
       console.error("Error fetching data:", err);
     }
@@ -19,7 +18,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 2000); // كل 2 ثانية
+    const interval = setInterval(fetchData, 2000);
     return () => clearInterval(interval);
   }, []);
 
