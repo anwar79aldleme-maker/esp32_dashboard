@@ -2,12 +2,9 @@ import pkg from 'pg';
 const { Client } = pkg;
 
 export default async function handler(req, res) {
-  // منع cache
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-  });
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
 
   try {
     await client.connect();
@@ -18,6 +15,7 @@ export default async function handler(req, res) {
         await client.end();
         return res.status(400).json({ message: 'Missing sensor data' });
       }
+
       await client.query(
         'INSERT INTO sensor_data (heartrate, spo2, time) VALUES ($1, $2, NOW())',
         [heartrate, spo2]
@@ -39,6 +37,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     await client.end();
+    console.error(error);
     return res.status(500).json({ message: 'Server error', detail: error.message });
   }
 }
