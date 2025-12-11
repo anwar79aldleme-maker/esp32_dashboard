@@ -8,8 +8,7 @@
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f5f7fa;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
     }
     header {
       background-color: #3f51b5;
@@ -69,14 +68,22 @@
     }
 
     function updateValues(latest) {
-      document.getElementById('heartrateValue').textContent = latest ? latest.heartrate : '--';
-      document.getElementById('spo2Value').textContent = latest ? latest.spo2 : '--';
+      const hr = latest ? latest.heartrate : '--';
+      const sp = latest ? latest.spo2 : '--';
+      document.getElementById('heartrateValue').textContent = hr;
+      document.getElementById('spo2Value').textContent = sp;
+    }
+
+    function getYMax(values, defaultMax) {
+      if (!values || values.length === 0) return defaultMax;
+      return Math.max(...values) * 1.2; // زيادة 20%
     }
 
     function renderCharts(sensorData) {
+      // فلترة البيانات الغريبة
+      const heartrate = sensorData.map(d => (d.heartrate > 0 && d.heartrate < 220) ? d.heartrate : null);
+      const spo2 = sensorData.map(d => (d.spo2 >= 50 && d.spo2 <= 100) ? d.spo2 : null);
       const timestamps = sensorData.map(d => new Date(d.time).toLocaleTimeString());
-      const heartrate = sensorData.map(d => d.heartrate);
-      const spo2 = sensorData.map(d => d.spo2);
 
       if (heartrateChart) heartrateChart.destroy();
       if (spo2Chart) spo2Chart.destroy();
@@ -84,24 +91,26 @@
       heartrateChart = new Chart(document.getElementById('heartrateChart'), {
         type: 'line',
         data: { labels: timestamps, datasets: [{ label: 'Heart Rate', data: heartrate, borderColor: '#e53935', backgroundColor: 'rgba(229,57,53,0.2)', fill: true, tension: 0.3 }] },
-        options: { responsive: true, scales: { y: { beginAtZero: true, suggestedMax: 150 } } }
+        options: { responsive: true, scales: { y: { beginAtZero: true, max: getYMax(heartrate, 150) } } }
       });
 
       spo2Chart = new Chart(document.getElementById('spo2Chart'), {
         type: 'line',
         data: { labels: timestamps, datasets: [{ label: 'SpO2', data: spo2, borderColor: '#1e88e5', backgroundColor: 'rgba(30,136,229,0.2)', fill: true, tension: 0.3 }] },
-        options: { responsive: true, scales: { y: { beginAtZero: true, suggestedMax: 100 } } }
+        options: { responsive: true, scales: { y: { beginAtZero: true, max: getYMax(spo2, 100) } } }
       });
     }
 
     async function refreshDashboard() {
       const sensorData = await fetchData();
+
       if (!sensorData || sensorData.length === 0) {
         document.getElementById('status').textContent = 'No data available. Please check ESP32 POST or Neon database.';
         updateValues(null);
         renderCharts([]);
         return;
       }
+
       document.getElementById('status').textContent = '';
       const latest = sensorData[sensorData.length - 1];
       updateValues(latest);
@@ -109,7 +118,7 @@
     }
 
     refreshDashboard();
-    setInterval(refreshDashboard, 10000);
+    setInterval(refreshDashboard, 10000); // تحديث كل 10 ثوانٍ
   </script>
 </body>
 </html>
