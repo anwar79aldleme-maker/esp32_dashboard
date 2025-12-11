@@ -1,1 +1,64 @@
 
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>ESP32 Health Dashboard</title>
+<link rel="stylesheet" href="/styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<h1>ESP32 Health Dashboard</h1>
+
+
+<div class="chart-container">
+<canvas id="hrChart"></canvas>
+</div>
+
+
+<div class="chart-container">
+<canvas id="spo2Chart"></canvas>
+</div>
+
+
+<table id="dataTable">
+<thead>
+<tr>
+<th>Time</th>
+<th>Heart Rate</th>
+<th>SpO2</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+
+<script>
+const hrCtx = document.getElementById('hrChart');
+const spo2Ctx = document.getElementById('spo2Chart');
+
+
+let hrChart = new Chart(hrCtx, {
+type: 'line',
+data: { labels: [], datasets: [{ label: 'Heart Rate', data: [] }] }
+});
+
+
+let spo2Chart = new Chart(spo2Ctx, {
+type: 'line',
+data: { labels: [], datasets: [{ label: 'SpO2', data: [] }] }
+});
+
+
+setInterval(async () => {
+const res = await fetch('/api/getdata');
+const data = await res.json();
+
+
+const table = document.querySelector('#dataTable tbody');
+table.innerHTML = '';
+
+
+hrChart.data.labels = [];
+hrChart.data.datasets[0].data = [];
+</html>
