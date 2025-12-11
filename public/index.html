@@ -87,107 +87,79 @@
   <script>
     let heartrateChart, spo2Chart;
 
-    async function fetchData() {
-      try {
-        const response = await fetch('/api/sensor');
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch (err) {
-        document.getElementById('status').textContent = `Error fetching data: ${err.message}`;
-        console.error(err);
-        return [];
-      }
-    }
+async function fetchData() {
+  try {
+    const response = await fetch('/api/sensor');
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    document.getElementById('status').textContent = `Error fetching data: ${err.message}`;
+    console.error(err);
+    return [];
+  }
+}
 
-    function updateValues(sensorData) {
-      if (sensorData.length > 0) {
-        const latest = sensorData[sensorData.length - 1];
-        document.getElementById('heartrateValue').textContent = latest.heartrate;
-        document.getElementById('spo2Value').textContent = latest.spo2;
-      } else {
-        document.getElementById('heartrateValue').textContent = '--';
-        document.getElementById('spo2Value').textContent = '--';
-      }
-    }
+function updateValues(latest) {
+  document.getElementById('heartrateValue').textContent = latest ? latest.heartrate : '--';
+  document.getElementById('spo2Value').textContent = latest ? latest.spo2 : '--';
+}
 
-    function renderCharts(sensorData) {
-      const timestamps = sensorData.map(d => {
-        const t = new Date(d.time);
-        return isNaN(t) ? '-' : t.toLocaleTimeString();
-      });
+function renderCharts(sensorData) {
+  const timestamps = sensorData.map(d => {
+    const t = new Date(d.time);
+    return isNaN(t) ? '-' : t.toLocaleTimeString();
+  });
 
-      const heartrate = sensorData.map(d => d.heartrate);
-      const spo2 = sensorData.map(d => d.spo2);
+  const heartrate = sensorData.map(d => d.heartrate);
+  const spo2 = sensorData.map(d => d.spo2);
 
-      if (!heartrateChart) {
-        heartrateChart = new Chart(document.getElementById('heartrateChart'), {
-          type: 'line',
-          data: {
-            labels: timestamps,
-            datasets: [{
-              label: 'Heart Rate',
-              data: heartrate,
-              borderColor: '#e53935',
-              backgroundColor: 'rgba(229,57,53,0.2)',
-              fill: true,
-              tension: 0.3
-            }]
-          },
-          options: {
-            responsive: true,
-            scales: { y: { beginAtZero: true, suggestedMax: 150 } }
-          }
-        });
-      } else {
-        heartrateChart.data.labels = timestamps;
-        heartrateChart.data.datasets[0].data = heartrate;
-        heartrateChart.update();
-      }
+  if (!heartrateChart) {
+    heartrateChart = new Chart(document.getElementById('heartrateChart'), {
+      type: 'line',
+      data: { labels: timestamps, datasets: [{ label: 'Heart Rate', data: heartrate, borderColor: '#e53935', backgroundColor: 'rgba(229,57,53,0.2)', fill: true, tension: 0.3 }] },
+      options: { responsive: true, scales: { y: { beginAtZero: true, suggestedMax: 150 } } }
+    });
+  } else {
+    heartrateChart.data.labels = timestamps;
+    heartrateChart.data.datasets[0].data = heartrate;
+    heartrateChart.update();
+  }
 
-      if (!spo2Chart) {
-        spo2Chart = new Chart(document.getElementById('spo2Chart'), {
-          type: 'line',
-          data: {
-            labels: timestamps,
-            datasets: [{
-              label: 'SpO2',
-              data: spo2,
-              borderColor: '#1e88e5',
-              backgroundColor: 'rgba(30,136,229,0.2)',
-              fill: true,
-              tension: 0.3
-            }]
-          },
-          options: {
-            responsive: true,
-            scales: { y: { beginAtZero: true, suggestedMax: 100 } }
-          }
-        });
-      } else {
-        spo2Chart.data.labels = timestamps;
-        spo2Chart.data.datasets[0].data = spo2;
-        spo2Chart.update();
-      }
-    }
+  if (!spo2Chart) {
+    spo2Chart = new Chart(document.getElementById('spo2Chart'), {
+      type: 'line',
+      data: { labels: timestamps, datasets: [{ label: 'SpO2', data: spo2, borderColor: '#1e88e5', backgroundColor: 'rgba(30,136,229,0.2)', fill: true, tension: 0.3 }] },
+      options: { responsive: true, scales: { y: { beginAtZero: true, suggestedMax: 100 } } }
+    });
+  } else {
+    spo2Chart.data.labels = timestamps;
+    spo2Chart.data.datasets[0].data = spo2;
+    spo2Chart.update();
+  }
+}
 
-    async function refreshDashboard() {
-      const sensorData = await fetchData();
+async function refreshDashboard() {
+  const sensorData = await fetchData();
 
-      if (sensorData.length === 0) {
-        document.getElementById('status').textContent = 'No data available. Please check ESP32 POST or Neon database.';
-        updateValues([]);
-        renderCharts([]);
-        return;
-      } else {
-        document.getElementById('status').textContent = '';
-      }
+  if (sensorData.length === 0) {
+    document.getElementById('status').textContent = 'No data available. Please check ESP32 POST or Neon database.';
+    updateValues(null);
+    renderCharts([]);
+    return;
+  } else {
+    document.getElementById('status').textContent = '';
+  }
 
-      updateValues(sensorData);
-      renderCharts(sensorData);
-    }
+  const latest = sensorData[sensorData.length - 1];
+  updateValues(latest);
+  renderCharts(sensorData);
+}
 
-    refreshDashboard();
+// تحديث الصفحة عند التحميل وأيضًا كل 10 ثوانٍ
+refreshDashboard();
+setInterval(refreshDashboard, 10000);
+
     setInterval(refreshDashboard, 10000); // تحديث كل 10 ثوانٍ
   </script>
 </body>
