@@ -41,7 +41,7 @@
     async function renderCharts() {
       const sensorData = await fetchData();
 
-      if (sensorData.length === 0) {
+      if (!Array.isArray(sensorData) || sensorData.length === 0) {
         document.getElementById('status').textContent = 'No data available. Please check ESP32 POST or Neon database.';
         return;
       } else {
