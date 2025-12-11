@@ -1,1 +1,80 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ESP32 Health Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+    .chart-container { width: 80%; margin: 20px auto; }
+  </style>
+</head>
+<body>
+  <h1>ESP32 Health Dashboard</h1>
+
+  <div class="chart-container">
+    <canvas id="heartrateChart"></canvas>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="spo2Chart"></canvas>
+  </div>
+
+  <script>
+    async function fetchData() {
+      const response = await fetch('/api/sensor');
+      const data = await response.json();
+      return data;
+    }
+
+    async function renderCharts() {
+      const sensorData = await fetchData();
+
+      const timestamps = sensorData.map(d => new Date(d.time).toLocaleTimeString());
+      const heartrate = sensorData.map(d => d.heartrate);
+      const spo2 = sensorData.map(d => d.spo2);
+
+      new Chart(document.getElementById('heartrateChart'), {
+        type: 'line',
+        data: {
+          labels: timestamps,
+          datasets: [{
+            label: 'Heart Rate',
+            data: heartrate,
+            borderColor: 'red',
+            fill: false,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      new Chart(document.getElementById('spo2Chart'), {
+        type: 'line',
+        data: {
+          labels: timestamps,
+          datasets: [{
+            label: 'SpO2',
+            data: spo2,
+            borderColor: 'blue',
+            fill: false,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true, max: 100 } }
+        }
+      });
+    }
+
+    renderCharts();
+    setInterval(renderCharts, 10000); // تحديث كل 10 ثواني
+  </script>
+</body>
+</html>
