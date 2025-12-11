@@ -106,11 +106,7 @@ function updateValues(latest) {
 }
 
 function renderCharts(sensorData) {
-  const timestamps = sensorData.map(d => {
-    const t = new Date(d.time);
-    return isNaN(t) ? '-' : t.toLocaleTimeString();
-  });
-
+  const timestamps = sensorData.map(d => new Date(d.time).toLocaleTimeString());
   const heartrate = sensorData.map(d => d.heartrate);
   const spo2 = sensorData.map(d => d.spo2);
 
@@ -155,14 +151,13 @@ async function refreshDashboard() {
   const sensorData = await fetchData();
 
   if (!sensorData || sensorData.length === 0) {
-    document.getElementById('status').textContent = 'No data available. Please check ESP32 POST or Neon database.';
+    document.getElementById('status').textContent = 'No data available.';
     updateValues(null);
     renderCharts([]);
     return;
-  } else {
-    document.getElementById('status').textContent = '';
   }
 
+  document.getElementById('status').textContent = '';
   const latest = sensorData[sensorData.length - 1];
   updateValues(latest);
   renderCharts(sensorData);
@@ -172,9 +167,6 @@ async function refreshDashboard() {
 refreshDashboard();
 setInterval(refreshDashboard, 10000);
 
-setInterval(refreshDashboard, 10000);
-
-    setInterval(refreshDashboard, 10000); // تحديث كل 10 ثوانٍ
   </script>
 </body>
 </html>
