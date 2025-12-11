@@ -5,168 +5,60 @@
   <title>ESP32 Health Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f5f7fa;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background-color: #3f51b5;
-      color: white;
-      text-align: center;
-      padding: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    h1 {
-      margin: 0;
-      font-size: 2rem;
-    }
-    #status {
-      text-align: center;
-      color: red;
-      font-weight: bold;
-      margin: 15px 0;
-    }
-    .dashboard {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 30px;
-      padding: 20px;
-    }
-    .card {
-      background: white;
-      border-radius: 15px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      padding: 20px;
-      width: 400px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .card h2 {
-      margin: 0;
-      margin-bottom: 10px;
-      font-size: 1.2rem;
-      color: #333;
-    }
-    .value {
-      font-size: 2rem;
-      font-weight: bold;
-      margin-bottom: 15px;
-      color: #3f51b5;
-    }
-    canvas {
-      width: 100% !important;
-      height: 250px !important;
-    }
+    body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+    h1 { text-align: center; }
+    .values { display: flex; justify-content: center; gap: 50px; margin-bottom: 20px; }
+    .value-box { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-align: center; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>ESP32 Health Dashboard</h1>
-  </header>
-
-  <div id="status"></div>
-
-  <div class="dashboard">
-    <div class="card">
-      <h2>Heart Rate (BPM)</h2>
-      <div class="value" id="heartrateValue">--</div>
-      <canvas id="heartrateChart"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>SpO2 (%)</h2>
-      <div class="value" id="spo2Value">--</div>
-      <canvas id="spo2Chart"></canvas>
-    </div>
+  <h1>ESP32 Health Dashboard</h1>
+  <div class="values">
+    <div class="value-box">Heart Rate: <span id="heartrate">0</span></div>
+    <div class="value-box">SpO2: <span id="spo2">0</span></div>
   </div>
+  <canvas id="chart" width="800" height="400"></canvas>
 
   <script>
-    let heartrateChart, spo2Chart;
+    const ctx = document.getElementById('chart').getContext('2d');
+    let chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels: [], datasets: [
+        { label: 'Heart Rate', data: [], borderColor: 'red', fill: false },
+        { label: 'SpO2', data: [], borderColor: 'blue', fill: false }
+      ]},
+      options: { responsive: true, animation: false, scales: { x: { type: 'time', time: { parser: 'YYYY-MM-DDTHH:mm:ss.SSSZ', tooltipFormat: 'HH:mm:ss' } }, y: { beginAtZero: true } } }
+    });
 
-async function fetchData() {
-  try {
-    const response = await fetch('/api/sensor');
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const data = await response.json();
-    return Array.isArray(data) ? data : [];
-  } catch (err) {
-    document.getElementById('status').textContent = `Error fetching data: ${err.message}`;
-    console.error(err);
-    return [];
-  }
-}
+    let lastTime = null;
 
-function updateValues(latest) {
-  document.getElementById('heartrateValue').textContent = latest ? latest.heartrate : '--';
-  document.getElementById('spo2Value').textContent = latest ? latest.spo2 : '--';
-}
+    async function fetchData() {
+      try {
+        let url = '/api/sensor';
+        if (lastTime) url += `?after=${lastTime}`;
 
-function renderCharts(sensorData) {
-  const timestamps = sensorData.map(d => new Date(d.time).toLocaleTimeString());
-  const heartrate = sensorData.map(d => d.heartrate);
-  const spo2 = sensorData.map(d => d.spo2);
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data || data.length === 0) return;
 
-  // تدمير Charts القديمة قبل إعادة إنشاء جديدة
-  if (heartrateChart) heartrateChart.destroy();
-  if (spo2Chart) spo2Chart.destroy();
+        data.forEach(d => {
+          chart.data.labels.push(new Date(d.time));
+          chart.data.datasets[0].data.push(d.heartrate);
+          chart.data.datasets[1].data.push(d.spo2);
+        });
 
-  heartrateChart = new Chart(document.getElementById('heartrateChart'), {
-    type: 'line',
-    data: {
-      labels: timestamps,
-      datasets: [{
-        label: 'Heart Rate',
-        data: heartrate,
-        borderColor: '#e53935',
-        backgroundColor: 'rgba(229,57,53,0.2)',
-        fill: true,
-        tension: 0.3
-      }]
-    },
-    options: { responsive: true, scales: { y: { beginAtZero: true, suggestedMax: 150 } } }
-  });
+        lastTime = data[data.length - 1].time;
 
-  spo2Chart = new Chart(document.getElementById('spo2Chart'), {
-    type: 'line',
-    data: {
-      labels: timestamps,
-      datasets: [{
-        label: 'SpO2',
-        data: spo2,
-        borderColor: '#1e88e5',
-        backgroundColor: 'rgba(30,136,229,0.2)',
-        fill: true,
-        tension: 0.3
-      }]
-    },
-    options: { responsive: true, scales: { y: { beginAtZero: true, suggestedMax: 100 } } }
-  });
-}
+        chart.update();
+        document.getElementById('heartrate').innerText = data[data.length - 1].heartrate;
+        document.getElementById('spo2').innerText = data[data.length - 1].spo2;
+      } catch (err) {
+        console.error(err);
+      }
+    }
 
-async function refreshDashboard() {
-  const sensorData = await fetchData();
-
-  if (!sensorData || sensorData.length === 0) {
-    document.getElementById('status').textContent = 'No data available.';
-    updateValues(null);
-    renderCharts([]);
-    return;
-  }
-
-  document.getElementById('status').textContent = '';
-  const latest = sensorData[sensorData.length - 1];
-  updateValues(latest);
-  renderCharts(sensorData);
-}
-
-// تحديث عند تحميل الصفحة وأيضًا كل 10 ثوانٍ
-refreshDashboard();
-setInterval(refreshDashboard, 10000);
-
+    fetchData();
+    setInterval(fetchData, 10000); // تحديث كل 10 ثواني
   </script>
 </body>
 </html>
