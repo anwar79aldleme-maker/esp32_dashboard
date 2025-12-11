@@ -37,7 +37,7 @@
 
     async function fetchData() {
       try {
-        const res = await fetch(`/api/sensor?ts=${Date.now()}`); // منع cache
+        const res = await fetch(`/api/sensor?ts=${Date.now()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         return Array.isArray(data) ? data : [];
