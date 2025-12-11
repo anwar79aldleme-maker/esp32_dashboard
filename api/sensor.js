@@ -4,6 +4,9 @@ const client = new neon(process.env.DATABASE_URL);
 
 export default async function handler(req, res) {
   try {
+    // منع أي cache
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+
     if (req.method === 'POST') {
       const { heartrate, spo2 } = req.body || {};
       if (heartrate == null || spo2 == null) {
