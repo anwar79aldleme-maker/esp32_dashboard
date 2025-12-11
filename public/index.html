@@ -114,35 +114,47 @@ function renderCharts(sensorData) {
   const heartrate = sensorData.map(d => d.heartrate);
   const spo2 = sensorData.map(d => d.spo2);
 
-  if (!heartrateChart) {
-    heartrateChart = new Chart(document.getElementById('heartrateChart'), {
-      type: 'line',
-      data: { labels: timestamps, datasets: [{ label: 'Heart Rate', data: heartrate, borderColor: '#e53935', backgroundColor: 'rgba(229,57,53,0.2)', fill: true, tension: 0.3 }] },
-      options: { responsive: true, scales: { y: { beginAtZero: true, suggestedMax: 150 } } }
-    });
-  } else {
-    heartrateChart.data.labels = timestamps;
-    heartrateChart.data.datasets[0].data = heartrate;
-    heartrateChart.update();
-  }
+  // تدمير Charts القديمة قبل إعادة إنشاء جديدة
+  if (heartrateChart) heartrateChart.destroy();
+  if (spo2Chart) spo2Chart.destroy();
 
-  if (!spo2Chart) {
-    spo2Chart = new Chart(document.getElementById('spo2Chart'), {
-      type: 'line',
-      data: { labels: timestamps, datasets: [{ label: 'SpO2', data: spo2, borderColor: '#1e88e5', backgroundColor: 'rgba(30,136,229,0.2)', fill: true, tension: 0.3 }] },
-      options: { responsive: true, scales: { y: { beginAtZero: true, suggestedMax: 100 } } }
-    });
-  } else {
-    spo2Chart.data.labels = timestamps;
-    spo2Chart.data.datasets[0].data = spo2;
-    spo2Chart.update();
-  }
+  heartrateChart = new Chart(document.getElementById('heartrateChart'), {
+    type: 'line',
+    data: {
+      labels: timestamps,
+      datasets: [{
+        label: 'Heart Rate',
+        data: heartrate,
+        borderColor: '#e53935',
+        backgroundColor: 'rgba(229,57,53,0.2)',
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true, suggestedMax: 150 } } }
+  });
+
+  spo2Chart = new Chart(document.getElementById('spo2Chart'), {
+    type: 'line',
+    data: {
+      labels: timestamps,
+      datasets: [{
+        label: 'SpO2',
+        data: spo2,
+        borderColor: '#1e88e5',
+        backgroundColor: 'rgba(30,136,229,0.2)',
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true, suggestedMax: 100 } } }
+  });
 }
 
 async function refreshDashboard() {
   const sensorData = await fetchData();
 
-  if (sensorData.length === 0) {
+  if (!sensorData || sensorData.length === 0) {
     document.getElementById('status').textContent = 'No data available. Please check ESP32 POST or Neon database.';
     updateValues(null);
     renderCharts([]);
@@ -156,8 +168,10 @@ async function refreshDashboard() {
   renderCharts(sensorData);
 }
 
-// تحديث الصفحة عند التحميل وأيضًا كل 10 ثوانٍ
+// تحديث عند تحميل الصفحة وأيضًا كل 10 ثوانٍ
 refreshDashboard();
+setInterval(refreshDashboard, 10000);
+
 setInterval(refreshDashboard, 10000);
 
     setInterval(refreshDashboard, 10000); // تحديث كل 10 ثوانٍ
