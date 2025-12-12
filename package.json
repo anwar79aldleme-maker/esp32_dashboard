@@ -1,17 +1,21 @@
 {
-  "name": "esp32_dashboard",
+  "name": "esp32-dashboard",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
     "next": "^13.6.17",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "recharts": "^2.7.2",
-    "@neondatabase/serverless": "1.0.2"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.6.2",
+    "@neondatabase/serverless": "^1.5.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
