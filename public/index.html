@@ -2,63 +2,40 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ESP32 Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-  body { font-family: Arial, sans-serif; padding: 20px; }
-  canvas { max-width: 600px; margin-top: 20px; }
-</style>
 </head>
 <body>
-<h1>ESP32 Dashboard</h1>
-<canvas id="spo2Chart"></canvas>
-<canvas id="hrChart"></canvas>
+<h1>ESP32 Health Dashboard</h1>
+<canvas id="chart" width="800" height="400"></canvas>
 
 <script>
+const ctx = document.getElementById('chart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: { labels: [], datasets: [
+    { label: 'Heart Rate', borderColor: 'blue', data: [] },
+    { label: 'SpO2', borderColor: 'green', data: [] }
+  ]},
+  options: { scales: { x: { type: 'time', time: { unit: 'second' } } } }
+});
+
 async function fetchData() {
   try {
-    const res = await fetch("/api/get");
+    const res = await fetch('/api/sensor?ts=' + Date.now());
     const data = await res.json();
-
-    const spo2Data = data.map(d => d.spo2);
-    const hrData = data.map(d => d.heartrate);
-    const labels = data.map(d => new Date(d.ts).toLocaleTimeString());
-
-    setChart(spo2Chart, labels, spo2Data, "SpO2", "rgba(255,0,0,0.6)");
-    setChart(hrChart, labels, hrData, "Heart Rate", "rgba(0,0,255,0.6)");
-  } catch (err) {
-    console.error("Error fetching data:", err);
+    chart.data.labels = data.map(d => new Date(d.time));
+    chart.data.datasets[0].data = data.map(d => d.heartrate);
+    chart.data.datasets[1].data = data.map(d => d.spo2);
+    chart.update();
+  } catch (e) {
+    console.error("Error fetching data:", e);
   }
 }
 
-function setChart(chartInstance, labels, data, label, color) {
-  if (chartInstance.chart) {
-    chartInstance.chart.data.labels = labels;
-    chartInstance.chart.data.datasets[0].data = data;
-    chartInstance.chart.update();
-  } else {
-    chartInstance.chart = new Chart(chartInstance, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: label,
-          data: data,
-          borderColor: color,
-          fill: false,
-        }]
-      },
-      options: { responsive: true }
-    });
-  }
-}
-
-const spo2Chart = document.getElementById("spo2Chart");
-const hrChart = document.getElementById("hrChart");
-
-setInterval(fetchData, 1000); // تحديث كل ثانية
-fetchData(); // تحميل أولي
+setInterval(fetchData, 2000);
+fetchData();
 </script>
 </body>
 </html>
-
