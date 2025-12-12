@@ -1,28 +1,37 @@
-const express = require("express");
-const cors = require("cors");
+import { Client } from "@neondatabase/serverless";
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+// إنشاء client متصل بقاعدة Neon
+const client = new Client({
+  connectionString: process.env.NEON_DATABASE_URL, // ضع URL الخاص بقاعدة البيانات في Environment Variables
+});
 
-let sensorData = []; // لتخزين البيانات مؤقتًا
-
-// استقبال البيانات من ESP32
-app.post("/api/sensor", (req, res) => {
-  const { heartrate, spo2 } = req.body;
-  if (typeof heartrate !== "number" || typeof spo2 !== "number") {
-    return res.status(400).json({ message: "Invalid data" });
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ message: "Method Not Allowed" });
   }
-  const entry = { time: Date.now(), heartrate, spo2 };
-  sensorData.push(entry);
-  if (sensorData.length > 100) sensorData.shift(); // آخر 100 قيمة
-  res.json({ message: "Data saved", entry });
-});
 
-// إرسال البيانات للواجهة
-app.get("/api/sensor", (req, res) => {
-  res.json(sensorData);
-});
+  try {
+    const { heartrate, spo2 } = req.body;
 
-module.exports = app;
+    if (typeof heartrate !== "number" || typeof spo2 !== "number") {
+      return res.status(400).json({ message: "Invalid data format" });
+    }
 
+    // الاتصال بالقاعدة، إدخال البيانات
+    await client.connect();
+    const query = `
+      INSERT INTO sensor_data (time, heartrate, spo2)
+      VALUES ($1, $2, $3)
+      RETURNING *;
+    `;
+    const values = [Date.now(), heartrate, spo2];
+    const result = await client.query(query, values);
+
+    await client.end();
+
+    return res.status(200).json({ message: "Data saved", data: result.rows[0] });
+  } catch (error) {
+    console.error("Database error:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
