@@ -55,6 +55,8 @@ y: { beginAtZero: true }
 async function fetchData() {
 try {
 const res = await fetch("/api/get", { cache: "no-store" });
+const json = await res.json();
+setData(json);
 const data = await res.json();
 const last50 = data.slice(-50);
 healthChart.data.labels = last50.map(d => new Date(d.time));
