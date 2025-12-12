@@ -1,1 +1,12 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/*.js", "use": "@vercel/node" },
+    { "src": "public/*", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/sensor", "methods": ["POST", "GET"], "dest": "/api/sensor.js" },
+    { "src": "/(.*)", "dest": "/public/index.html" }
+  ]
+}
 
