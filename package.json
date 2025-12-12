@@ -1,12 +1,11 @@
 {
   "name": "esp32_dashboard",
   "version": "1.0.0",
-  "main": "api/sensor.js",
-  "scripts": {
-    "start": "node api/sensor.js"
-  },
+  "type": "module",
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "@neondatabase/serverless": "^1.5.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
