@@ -1,10 +1,16 @@
 // api/sensor.js
 import { Client } from "@neondatabase/serverless";
 
-// إنشاء client ثابت لا يعاد الاتصال به لكل طلب
-const client = new Client({
-  connectionString: process.env.NEON_DATABASE_URL,
-});
+let client;
+
+if (!global._neonClient) {
+  client = new Client({
+    connectionString: process.env.NEON_DATABASE_URL,
+  });
+  global._neonClient = client;
+} else {
+  client = global._neonClient;
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -14,21 +20,20 @@ export default async function handler(req, res) {
   try {
     const { heartrate, spo2 } = req.body;
 
-    if (heartrate == null || spo2 == null) {
+    if (typeof heartrate !== "number" || typeof spo2 !== "number") {
       return res.status(400).json({ message: "Invalid data" });
     }
 
-    const query = `
-      INSERT INTO sensor_data (time, heartrate, spo2)
-      VALUES ($1, $2, $3)
-      RETURNING *;
-    `;
-    const values = [Date.now(), heartrate, spo2];
-    const result = await client.query(query, values);
+    await client.connect(); // تأكد من الاتصال مرة واحدة فقط
+    const result = await client.query(
+      "INSERT INTO sensor_data (time, heartrate, spo2) VALUES ($1, $2, $3) RETURNING *",
+      [Date.now(), heartrate, spo2]
+    );
+    await client.end(); // أغلق الاتصال بعد كل عملية
 
     return res.status(200).json({ message: "Data saved", data: result.rows[0] });
   } catch (error) {
-    console.error(error);
+    console.error("Server error:", error.message);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 }
