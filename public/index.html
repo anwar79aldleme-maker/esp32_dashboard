@@ -1,41 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ESP32 Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32 Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-<h1>ESP32 Health Dashboard</h1>
-<canvas id="chart" width="800" height="400"></canvas>
+  <h1>ESP32 Sensor Dashboard</h1>
+  <canvas id="spo2Chart" width="400" height="200"></canvas>
+  <canvas id="hrChart" width="400" height="200"></canvas>
 
-<script>
-const ctx = document.getElementById('chart').getContext('2d');
-const chart = new Chart(ctx, {
-  type: 'line',
-  data: { labels: [], datasets: [
-    { label: 'Heart Rate', borderColor: 'blue', data: [] },
-    { label: 'SpO2', borderColor: 'green', data: [] }
-  ]},
-  options: { scales: { x: { type: 'time', time: { unit: 'second' } } } }
-});
+  <script>
+    const spo2Ctx = document.getElementById('spo2Chart').getContext('2d');
+    const hrCtx = document.getElementById('hrChart').getContext('2d');
 
-async function fetchData() {
-  try {
-    const res = await fetch('/api/sensor?ts=' + Date.now());
-    const data = await res.json();
-    chart.data.labels = data.map(d => new Date(d.time));
-    chart.data.datasets[0].data = data.map(d => d.heartrate);
-    chart.data.datasets[1].data = data.map(d => d.spo2);
-    chart.update();
-  } catch (e) {
-    console.error("Error fetching data:", e);
-  }
-}
+    const spo2Chart = new Chart(spo2Ctx, {
+      type: 'line',
+      data: { labels: [], datasets: [{ label: 'SpO2', data: [], borderColor: 'red', fill: false }] },
+      options: { responsive: true }
+    });
 
-setInterval(fetchData, 2000);
-fetchData();
-</script>
+    const hrChart = new Chart(hrCtx, {
+      type: 'line',
+      data: { labels: [], datasets: [{ label: 'Heart Rate', data: [], borderColor: 'blue', fill: false }] },
+      options: { responsive: true }
+    });
+
+    async function fetchData() {
+      try {
+        const res = await fetch('/api/get');
+        const data = await res.json();
+        const labels = data.map(d => new Date(d.created_at).toLocaleTimeString()).reverse();
+        const spo2Data = data.map(d => d.spo2).reverse();
+        const hrData = data.map(d => d.heartrate).reverse();
+
+        spo2Chart.data.labels = labels;
+        spo2Chart.data.datasets[0].data = spo2Data;
+        spo2Chart.update();
+
+        hrChart.data.labels = labels;
+        hrChart.data.datasets[0].data = hrData;
+        hrChart.update();
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
+    }
+
+    fetchData();
+    setInterval(fetchData, 2000);
+  </script>
 </body>
 </html>
