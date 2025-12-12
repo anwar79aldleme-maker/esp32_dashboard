@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "pages/index.js", "use": "@vercel/next" },
-    { "src": "api/sensor.js", "use": "@vercel/node" }
-  ],
+  "functions": {
+    "api/sensor.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "routes": [
     { "src": "/api/sensor", "dest": "/api/sensor.js" }
   ]
