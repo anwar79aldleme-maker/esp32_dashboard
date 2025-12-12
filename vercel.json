@@ -5,8 +5,8 @@
     { "src": "public/*", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/sensor", "methods": ["POST", "GET"], "dest": "/api/sensor.js" },
+    { "src": "/api/sensor", "methods": ["POST"], "dest": "/api/sensor.js" },
+    { "src": "/api/get", "methods": ["GET"], "dest": "/api/get.js" },
     { "src": "/(.*)", "dest": "/public/index.html" }
   ]
 }
-
