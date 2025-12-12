@@ -1,26 +1,33 @@
-import { neon } from "@neondatabase/serverless";
-
-const client = new neon(process.env.DATABASE_URL);
+// api/sensor.js
+let sensorData = []; // لتخزين آخر البيانات
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
+  if (req.method === "POST") {
+    try {
+      const { heartrate, spo2 } = req.body;
+
+      if (typeof heartrate !== "number" || typeof spo2 !== "number") {
+        return res.status(400).json({ message: "Invalid data" });
+      }
+
+      const timestamp = Date.now();
+      const newEntry = { heartrate, spo2, time: timestamp };
+      sensorData.push(newEntry);
+
+      // نحافظ على آخر 100 قيمة فقط
+      if (sensorData.length > 100) {
+        sensorData = sensorData.slice(-100);
+      }
+
+      return res.status(200).json({ message: "Data received", data: newEntry });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error", error: err.message });
+    }
+  } else if (req.method === "GET") {
+    // إرجاع آخر 50 قيمة للعرض في Dashboard
+    return res.status(200).json(sensorData.slice(-50));
+  } else {
     return res.status(405).json({ message: "Method not allowed" });
-  }
-
-  const { spo2, heartrate } = req.body;
-
-  if (spo2 == null || heartrate == null) {
-    return res.status(400).json({ message: "Missing data" });
-  }
-
-  try {
-    await client.sql`
-      INSERT INTO sensor_data (spo2, heartrate, time)
-      VALUES (${spo2}, ${heartrate}, NOW())
-    `;
-    res.status(200).json({ message: "Data saved" });
-  } catch (error) {
-    console.error("Error saving data:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
