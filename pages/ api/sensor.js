@@ -1,28 +1,26 @@
-import { Client } from "@neondatabase/serverless";
+import { neon } from "@neondatabase/serverless";
+
+const client = new neon(process.env.DATABASE_URL);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed" });
   }
-  const { heartrate, spo2 } = req.body;
 
-  if (typeof heartrate !== "number" || typeof spo2 !== "number") {
-    return res.status(400).json({ message: "Invalid data" });
+  const { spo2, heartrate } = req.body;
+
+  if (spo2 == null || heartrate == null) {
+    return res.status(400).json({ message: "Missing data" });
   }
-
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
 
   try {
-    await client.connect();
-    await client.query(
-      "INSERT INTO sensor_data (heartrate, spo2) VALUES ($1, $2)",
-      [heartrate, spo2]
-    );
-    await client.end();
-    res.status(200).json({ message: "Success" });
-  } catch (err) {
-    await client.end();
-    res.status(500).json({ message: "Server error", error: err.message });
+    await client.sql`
+      INSERT INTO sensor_data (spo2, heartrate, time)
+      VALUES (${spo2}, ${heartrate}, NOW())
+    `;
+    res.status(200).json({ message: "Data saved" });
+  } catch (error) {
+    console.error("Error saving data:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 }
-
