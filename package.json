@@ -1,11 +1,11 @@
 {
-  "name": "esp32_dashboard",
+  "name": "esp32-dashboard",
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "@neondatabase/serverless": "^1.5.0"
+    "@neondatabase/serverless": "^1.0.2"
   },
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   }
 }
